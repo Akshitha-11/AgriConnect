@@ -7,10 +7,8 @@ import io
 import os
 
 app = Flask(__name__)
-# Allow all origins and methods
-CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"]}})
 
-# Load the ML model
+CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"]}})
 print("Loading model...")
 try:
     model = tf.keras.models.load_model('fruit_grade_model.keras')
@@ -22,23 +20,20 @@ except Exception as e:
 def preprocess_image(image):
     print("\n=== Image Preprocessing ===")
     try:
-        # Convert to RGB if not already
         if image.mode != 'RGB':
             print(f"Converting image from {image.mode} to RGB")
             image = image.convert('RGB')
         
-        # Resize image to match model's expected sizing
+        # Resize 
         print(f"Original image size: {image.size}")
         image = image.resize((224, 224))
         print(f"Resized image size: {image.size}")
-        
-        # Convert to numpy array
+    
         img_array = np.array(image)
         print(f"Image array shape: {img_array.shape}")
         print(f"Image array dtype: {img_array.dtype}")
         print(f"Image array min/max: {np.min(img_array)}, {np.max(img_array)}")
         
-        # Enhance contrast (optional, can be adjusted)
         img_array = img_array.astype(np.float32)
         img_array = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
         print(f"After contrast enhancement - min/max: {np.min(img_array)}, {np.max(img_array)}")
@@ -47,7 +42,6 @@ def preprocess_image(image):
         img_array = img_array / 255.0
         print(f"After normalization - min/max: {np.min(img_array)}, {np.max(img_array)}")
         
-        # Add batch dimension
         img_array = np.expand_dims(img_array, axis=0)
         print(f"Final preprocessed image shape: {img_array.shape}")
         return img_array
@@ -73,13 +67,11 @@ def grade_quality():
         image_file = request.files['image']
         print(f"Image file received: {image_file.filename}")
         
-        # Validate file type
         if not image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             print("Invalid file type")
             return jsonify({'error': 'Invalid file type. Please upload a PNG, JPG, or JPEG image.'}), 400
 
         try:
-            # Read the image file
             image_data = image_file.read()
             if not image_data:
                 return jsonify({'error': 'Empty image file'}), 400
@@ -90,14 +82,12 @@ def grade_quality():
             print(f"Error opening image: {str(e)}")
             return jsonify({'error': 'Invalid image file'}), 400
 
-        # Preprocess the image
         try:
             processed_image = preprocess_image(image)
         except Exception as e:
             print(f"Error in preprocessing: {str(e)}")
             return jsonify({'error': 'Error processing image'}), 500
 
-        # Get prediction from model
         print("\n=== Model Prediction ===")
         try:
             prediction = model.predict(processed_image, verbose=1)
@@ -107,12 +97,10 @@ def grade_quality():
             print(f"Error in model prediction: {str(e)}")
             return jsonify({'error': 'Error in quality assessment'}), 500
 
-        # Ensure prediction is in the expected format
         if len(prediction[0]) != 3:
             print(f"Unexpected prediction shape: {prediction.shape}")
             return jsonify({'error': 'Model output format error'}), 500
-
-        # Softmax output: take the highest probability class
+            
         class_names = ['A', 'B', 'C']
         predicted_index = np.argmax(prediction[0])
         grade = class_names[predicted_index]
@@ -122,7 +110,7 @@ def grade_quality():
         print(f"Confidence score: {confidence_score}")
         print(f"All class probabilities: {prediction[0].tolist()}")
 
-        # Custom label mapping
+        #label-mapping
         grade_mapping = {
             "A": "Grade A - Premium Quality",
             "B": "Grade B - Good Quality",
